@@ -1,22 +1,36 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Disaster Preparedness and Response Education System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User management
+  - name: modules
+    description: Learning modules
+  - name: quizzes
+    description: Quiz system
+  - name: quiz-results
+    description: Quiz results and leaderboard
+  - name: alerts
+    description: Emergency alerts
+  - name: incidents
+    description: Disaster incident reporting
+  - name: emergency-contacts
+    description: Emergency contact directory
+  - name: dashboard
+    description: Dashboard and analytics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +38,481 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin only)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Update user role (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /modules:
+    get:
+      operationId: listModules
+      tags: [modules]
+      summary: List all learning modules
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of modules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LearningModule"
+    post:
+      operationId: createModule
+      tags: [modules]
+      summary: Create a learning module (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningModuleInput"
+      responses:
+        "201":
+          description: Created module
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningModule"
+
+  /modules/{id}:
+    get:
+      operationId: getModule
+      tags: [modules]
+      summary: Get a learning module
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Module
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningModule"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateModule
+      tags: [modules]
+      summary: Update a learning module
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningModuleUpdate"
+      responses:
+        "200":
+          description: Updated module
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningModule"
+    delete:
+      operationId: deleteModule
+      tags: [modules]
+      summary: Delete a learning module
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /quizzes:
+    get:
+      operationId: listQuizzes
+      tags: [quizzes]
+      summary: List all quizzes
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of quizzes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quiz"
+    post:
+      operationId: createQuiz
+      tags: [quizzes]
+      summary: Create a quiz (teacher/admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizInput"
+      responses:
+        "201":
+          description: Created quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+
+  /quizzes/{id}:
+    get:
+      operationId: getQuiz
+      tags: [quizzes]
+      summary: Get a quiz with questions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quiz with questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizWithQuestions"
+        "404":
+          description: Not found
+
+  /quizzes/{id}/submit:
+    post:
+      operationId: submitQuiz
+      tags: [quizzes]
+      summary: Submit quiz answers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizSubmission"
+      responses:
+        "200":
+          description: Quiz result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResult"
+
+  /quizzes/{id}/questions:
+    post:
+      operationId: addQuestion
+      tags: [quizzes]
+      summary: Add a question to a quiz (teacher/admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionInput"
+      responses:
+        "201":
+          description: Created question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+
+  /quiz-results:
+    get:
+      operationId: listQuizResults
+      tags: [quiz-results]
+      summary: Get quiz results for current user
+      responses:
+        "200":
+          description: Quiz results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuizResult"
+
+  /quiz-results/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [quiz-results]
+      summary: Get quiz leaderboard
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List active alerts
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+    post:
+      operationId: createAlert
+      tags: [alerts]
+      summary: Create an alert (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlertInput"
+      responses:
+        "201":
+          description: Created alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}:
+    delete:
+      operationId: deleteAlert
+      tags: [alerts]
+      summary: Delete an alert (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /incidents:
+    get:
+      operationId: listIncidents
+      tags: [incidents]
+      summary: List incidents (admin sees all, others see own)
+      responses:
+        "200":
+          description: Incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      tags: [incidents]
+      summary: Report a new incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "201":
+          description: Created incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  /incidents/{id}/status:
+    patch:
+      operationId: updateIncidentStatus
+      tags: [incidents]
+      summary: Update incident status (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentStatusUpdate"
+      responses:
+        "200":
+          description: Updated incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  /emergency-contacts:
+    get:
+      operationId: listEmergencyContacts
+      tags: [emergency-contacts]
+      summary: List emergency contacts
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmergencyContact"
+    post:
+      operationId: createEmergencyContact
+      tags: [emergency-contacts]
+      summary: Create emergency contact (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmergencyContactInput"
+      responses:
+        "201":
+          description: Created contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencyContact"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/student-stats:
+    get:
+      operationId: getStudentStats
+      tags: [dashboard]
+      summary: Get student dashboard statistics
+      responses:
+        "200":
+          description: Student stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +523,528 @@ components:
       required:
         - status
 
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, teacher, admin]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - name
+        - email
+        - role
+        - createdAt
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [student, teacher, admin]
+      required:
+        - role
+
+    LearningModule:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [earthquake, flood, fire, cyclone, pandemic, landslide, heatwave]
+        contentUrl:
+          type: ["string", "null"]
+        contentType:
+          type: string
+          enum: [video, pdf, article, guide]
+        createdBy:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - category
+        - contentType
+        - createdAt
+
+    LearningModuleInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [earthquake, flood, fire, cyclone, pandemic, landslide, heatwave]
+        contentUrl:
+          type: string
+        contentType:
+          type: string
+          enum: [video, pdf, article, guide]
+      required:
+        - title
+        - description
+        - category
+        - contentType
+
+    LearningModuleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [earthquake, flood, fire, cyclone, pandemic, landslide, heatwave]
+        contentUrl:
+          type: string
+        contentType:
+          type: string
+          enum: [video, pdf, article, guide]
+
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [earthquake, flood, fire, cyclone, pandemic, landslide, heatwave]
+        questionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - category
+        - questionCount
+        - createdAt
+
+    QuizInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [earthquake, flood, fire, cyclone, pandemic, landslide, heatwave]
+      required:
+        - title
+        - description
+        - category
+
+    QuizWithQuestions:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        questionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+      required:
+        - id
+        - title
+        - description
+        - category
+        - questionCount
+        - createdAt
+        - questions
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        quizId:
+          type: integer
+        questionText:
+          type: string
+        optionA:
+          type: string
+        optionB:
+          type: string
+        optionC:
+          type: string
+        optionD:
+          type: string
+        correctAnswer:
+          type: ["string", "null"]
+      required:
+        - id
+        - quizId
+        - questionText
+        - optionA
+        - optionB
+        - optionC
+        - optionD
+
+    QuestionInput:
+      type: object
+      properties:
+        questionText:
+          type: string
+        optionA:
+          type: string
+        optionB:
+          type: string
+        optionC:
+          type: string
+        optionD:
+          type: string
+        correctAnswer:
+          type: string
+      required:
+        - questionText
+        - optionA
+        - optionB
+        - optionC
+        - optionD
+        - correctAnswer
+
+    QuizSubmission:
+      type: object
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizAnswer"
+      required:
+        - answers
+
+    QuizAnswer:
+      type: object
+      properties:
+        questionId:
+          type: integer
+        answer:
+          type: string
+      required:
+        - questionId
+        - answer
+
+    QuizResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        quizId:
+          type: integer
+        quizTitle:
+          type: string
+        score:
+          type: integer
+        totalQuestions:
+          type: integer
+        percentage:
+          type: number
+        completedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - quizId
+        - quizTitle
+        - score
+        - totalQuestions
+        - percentage
+        - completedAt
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        userId:
+          type: integer
+        userName:
+          type: string
+        totalScore:
+          type: integer
+        quizzesCompleted:
+          type: integer
+        averagePercentage:
+          type: number
+      required:
+        - userId
+        - userName
+        - totalScore
+        - quizzesCompleted
+        - averagePercentage
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        alertType:
+          type: string
+          enum: [weather, earthquake, fire, flood, evacuation, general]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - message
+        - alertType
+        - isActive
+        - createdAt
+
+    AlertInput:
+      type: object
+      properties:
+        title:
+          type: string
+        message:
+          type: string
+        alertType:
+          type: string
+          enum: [weather, earthquake, fire, flood, evacuation, general]
+      required:
+        - title
+        - message
+        - alertType
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        incidentType:
+          type: string
+          enum: [fire, flood, building_collapse, medical_emergency, earthquake, other]
+        status:
+          type: string
+          enum: [pending, investigating, resolved, closed]
+        imageUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - userName
+        - title
+        - description
+        - location
+        - incidentType
+        - status
+        - createdAt
+
+    IncidentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        incidentType:
+          type: string
+          enum: [fire, flood, building_collapse, medical_emergency, earthquake, other]
+        imageUrl:
+          type: string
+      required:
+        - title
+        - description
+        - location
+        - incidentType
+
+    IncidentStatusUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, investigating, resolved, closed]
+      required:
+        - status
+
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: integer
+        department:
+          type: string
+        contactNumber:
+          type: string
+        city:
+          type: string
+        contactType:
+          type: string
+          enum: [police, fire, medical, disaster_management, utility, other]
+      required:
+        - id
+        - department
+        - contactNumber
+        - city
+        - contactType
+
+    EmergencyContactInput:
+      type: object
+      properties:
+        department:
+          type: string
+        contactNumber:
+          type: string
+        city:
+          type: string
+        contactType:
+          type: string
+          enum: [police, fire, medical, disaster_management, utility, other]
+      required:
+        - department
+        - contactNumber
+        - city
+        - contactType
+
+    DashboardStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalStudents:
+          type: integer
+        totalTeachers:
+          type: integer
+        activeAlerts:
+          type: integer
+        openIncidents:
+          type: integer
+        totalModules:
+          type: integer
+        totalQuizzes:
+          type: integer
+        quizzesCompletedThisMonth:
+          type: integer
+        incidentsByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountByCategory"
+        modulesByCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountByCategory"
+        recentIncidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Incident"
+      required:
+        - totalUsers
+        - totalStudents
+        - totalTeachers
+        - activeAlerts
+        - openIncidents
+        - totalModules
+        - totalQuizzes
+        - quizzesCompletedThisMonth
+        - incidentsByType
+        - modulesByCategory
+        - recentIncidents
+
+    StudentStats:
+      type: object
+      properties:
+        modulesCompleted:
+          type: integer
+        quizzesTaken:
+          type: integer
+        averageScore:
+          type: number
+        bestScore:
+          type: integer
+        totalPoints:
+          type: integer
+        recentResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuizResult"
+        activeAlerts:
+          type: integer
+      required:
+        - modulesCompleted
+        - quizzesTaken
+        - averageScore
+        - bestScore
+        - totalPoints
+        - recentResults
+        - activeAlerts
+
+    CountByCategory:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+      required:
+        - category
+        - count

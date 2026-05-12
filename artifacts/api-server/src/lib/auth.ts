@@ -1,0 +1,50 @@
+import { getAuth } from "@clerk/express";
+import type { Request, Response, NextFunction } from "express";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+export const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  (req as any).clerkId = clerkId;
+  next();
+};
+
+export const requireRole = (...roles: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const auth = getAuth(req);
+    const clerkId = auth?.userId;
+    if (!clerkId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+    if (!user) {
+      res.status(401).json({ error: "User not found" });
+      return;
+    }
+    if (!roles.includes(user.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    (req as any).clerkId = clerkId;
+    (req as any).dbUser = user;
+    next();
+  };
+};
+
+export const getOrCreateUser = async (clerkId: string, email: string, name: string) => {
+  const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+  if (existing.length > 0) return existing[0];
+  const [created] = await db.insert(usersTable).values({
+    clerkId,
+    email,
+    name,
+    role: "student",
+  }).returning();
+  return created;
+};
